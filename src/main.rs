@@ -1,13 +1,16 @@
 use clap::{Parser, ValueEnum};
+use message_types::UIRequest;
+use serde_json;
 use tungstenite::{connect, Message};
 use url::Url;
 
-const POSSIBLE_COMMANDS: &[&str] = &["play", "pause"];
+mod message_types;
 
 #[derive(ValueEnum, Debug, Clone)]
 enum SousaCommands {
     Play,
     Pause,
+    Search,
 }
 
 #[derive(Parser, Debug)]
@@ -22,8 +25,21 @@ struct CliArgs {
     port: Option<String>,
 
     /// The command to execute
-    #[arg(short, long, value_enum)]
-    action: SousaCommands,
+    #[arg(index = 1, value_enum)]
+    action: Option<SousaCommands>,
+
+    /// The string to search for when paired with a "Search" action
+    #[arg(index = 2, required_if_eq("action", "search"))]
+    search_arg: Option<String>,
+
+    /// The field to search for when running `search`
+    #[arg(
+        short,
+        long,
+        required_if_eq("action", "search"),
+        value_parser(["title", "artist", "album", "album_artist"])
+    )]
+    search_field: Option<String>,
 }
 
 fn main() {
@@ -35,16 +51,13 @@ fn main() {
     )
     .expect("Couldn't connect to url");
 
-    println!("Connected to the server");
-    println!("Response HTTP code: {}", resp.status());
-    println!("Response contains the following headers:");
-    for (ref header, _value) in resp.headers() {
-        println!("* {}", header);
-    }
+    let message_string = match cli.action.unwrap() {
+        SousaCommands::Play => serde_json::to_string(&UIRequest::Play).unwrap(),
+        SousaCommands::Pause => serde_json::to_string(&UIRequest::Pause).unwrap(),
+        SousaCommands::Search => String::new(),
+    };
 
-    socket
-        .write_message(Message::Text("Hello WebSocket".into()))
-        .unwrap();
+    socket.write_message(Message::Text(message_string)).unwrap();
     //let msg = socket.read_message().expect("Error reading message");
     //println!("Received: {}", msg);
     socket.close(None).unwrap();
