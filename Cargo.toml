@@ -9,3 +9,4 @@ edition = "2021"
 clap = { version = "4.0.29", features = ["derive"] }
 confy = "0.5.1"
 tungstenite = "0.18.0"
+url = "2.3.1"
