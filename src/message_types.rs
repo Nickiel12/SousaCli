@@ -1,6 +1,28 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize)]
+/// A struct that defines all the music tags supported by Sousa
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ItemTag {
+    pub path: String,
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    pub album_artist: String,
+}
+
+impl Default for ItemTag {
+    fn default() -> Self {
+        ItemTag {
+            path: String::new(),
+            title: String::new(),
+            artist: String::new(),
+            album: String::new(),
+            album_artist: String::new(),
+        }        
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
 pub struct PartialTag {
     pub path: Option<String>,
     pub title: Option<String>,
@@ -52,6 +74,11 @@ impl PartialTag {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ServerResponse {
+    pub search_results: Vec<ItemTag>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub enum SkipDirection {
     Forward,
     Backward,
@@ -62,7 +89,7 @@ pub enum UIRequest {
     Play,
     Pause,
     Skip(SkipDirection),
-    GetList(String),
+    Search(PartialTag),
     SwitchTo(PartialTag),
     GetStatus,
 }

@@ -1,5 +1,5 @@
 use clap::{Parser, ValueEnum};
-use message_types::UIRequest;
+use message_types::{PartialTag, UIRequest};
 use serde_json;
 use tungstenite::{connect, Message};
 use url::Url;
@@ -37,7 +37,7 @@ struct CliArgs {
         short,
         long,
         required_if_eq("action", "search"),
-        value_parser(["title", "artist", "album", "album_artist"])
+        value_parser(["title", "artist", "album"])
     )]
     search_field: Option<String>,
 }
@@ -54,11 +54,30 @@ fn main() {
     let message_string = match cli.action.unwrap() {
         SousaCommands::Play => serde_json::to_string(&UIRequest::Play).unwrap(),
         SousaCommands::Pause => serde_json::to_string(&UIRequest::Pause).unwrap(),
-        SousaCommands::Search => String::new(),
+        SousaCommands::Search => {
+            let request: UIRequest = match cli.search_field.unwrap().to_lowercase().as_str() {
+                "title" => UIRequest::Search(PartialTag {
+                    title: cli.search_arg,
+                    ..PartialTag::default()
+                }),
+                "artist" => UIRequest::Search(PartialTag {
+                    artist: cli.search_arg,
+                    ..PartialTag::default()
+                }),
+                "album" => UIRequest::Search(PartialTag {
+                    album: cli.search_arg,
+                    ..PartialTag::default()
+                }),
+                _ => panic!(
+                    "Unknown search type! Expected values are 'title', 'artist', and 'album'"
+                ),
+            };
+            serde_json::to_string(&request).unwrap()
+        }
     };
 
     socket.write_message(Message::Text(message_string)).unwrap();
-    //let msg = socket.read_message().expect("Error reading message");
-    //println!("Received: {}", msg);
+    let msg = socket.read_message().expect("Error reading message");
+    println!("Received: {}", msg);
     socket.close(None).unwrap();
 }
