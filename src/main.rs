@@ -81,6 +81,6 @@ fn main() {
     let msg = socket.read_message().expect("Error reading message");
     let resp: message_types::ServerResponse =
         serde_json::from_str(msg.into_text().unwrap().as_str()).unwrap();
-    println!("recieved: {:?}", resp);
+    println!("recieved: {:?}\n{:?}", resp.message, resp.search_results);
     socket.close(None).unwrap();
 }

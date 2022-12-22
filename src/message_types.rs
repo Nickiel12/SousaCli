@@ -73,8 +73,9 @@ impl PartialTag {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct ServerResponse {
+    pub message: String,
     pub search_results: Vec<ItemTag>,
 }
 
