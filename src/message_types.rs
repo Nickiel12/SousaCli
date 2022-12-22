@@ -18,7 +18,7 @@ impl Default for ItemTag {
             artist: String::new(),
             album: String::new(),
             album_artist: String::new(),
-        }        
+        }
     }
 }
 
@@ -73,7 +73,7 @@ impl PartialTag {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ServerResponse {
     pub search_results: Vec<ItemTag>,
 }

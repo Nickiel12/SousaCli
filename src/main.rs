@@ -40,6 +40,7 @@ struct CliArgs {
         value_parser(["title", "artist", "album"])
     )]
     search_field: Option<String>,
+    // Add flag for "search filepaths too"
 }
 
 fn main() {
@@ -78,6 +79,8 @@ fn main() {
 
     socket.write_message(Message::Text(message_string)).unwrap();
     let msg = socket.read_message().expect("Error reading message");
-    println!("Received: {}", msg);
+    let resp: message_types::ServerResponse =
+        serde_json::from_str(msg.into_text().unwrap().as_str()).unwrap();
+    println!("recieved: {:?}", resp);
     socket.close(None).unwrap();
 }
