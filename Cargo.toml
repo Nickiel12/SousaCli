@@ -1,5 +1,5 @@
 [package]
-name = "SousaCli"
+name = "sousa_cli"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,5 +10,7 @@ clap = { version = "4.0.29", features = ["derive"] }
 confy = "0.5.1"
 serde = { version = "1.0.151", features = ["derive"] }
 serde_json = "1.0.91"
+table_print = "0.1.0"
+termsize = "0.1.6"
 tungstenite = "0.18.0"
 url = "2.3.1"

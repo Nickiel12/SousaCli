@@ -1,6 +1,8 @@
 use clap::{Parser, ValueEnum};
-use message_types::{PartialTag, UIRequest};
+use message_types::{PartialTag, ServerResponse, UIRequest};
 use serde_json;
+use table_print::Table;
+use termsize;
 use tungstenite::{connect, Message};
 use url::Url;
 
@@ -46,7 +48,7 @@ struct CliArgs {
 fn main() {
     let cli = CliArgs::parse();
 
-    let (mut socket, resp) = connect(
+    let (mut socket, _resp) = connect(
         Url::parse(format!("ws://{}:{}", cli.hostname.unwrap(), cli.port.unwrap()).as_str())
             .unwrap(),
     )
@@ -81,6 +83,26 @@ fn main() {
     let msg = socket.read_message().expect("Error reading message");
     let resp: message_types::ServerResponse =
         serde_json::from_str(msg.into_text().unwrap().as_str()).unwrap();
-    println!("recieved: {:?}\n{:?}", resp.message, resp.search_results);
+    resp.pretty_print();
+    //println!("recieved: {:?}\n{:?}", resp.message, resp.search_results);
     socket.close(None).unwrap();
+}
+
+impl ServerResponse {
+    fn pretty_print(self: &Self) -> () {
+        let mut table = Table::new(vec![
+            "Title".to_string(),
+            "Artist".to_string(),
+            "Album".to_string(),
+        ]);
+        for i in self.search_results.iter() {
+            table.insert_row(vec![i.title.clone(), i.artist.clone(), i.album.clone()]);
+        }
+        println!(
+            "{}",
+            table
+                .get_pretty(termsize::get().unwrap().cols as usize)
+                .unwrap()
+        );
+    }
 }
