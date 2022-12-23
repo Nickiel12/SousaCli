@@ -13,6 +13,7 @@ enum SousaCommands {
     Play,
     Pause,
     Search,
+    SwitchTo,
 }
 
 #[derive(Parser, Debug)]
@@ -27,21 +28,19 @@ struct CliArgs {
     port: Option<String>,
 
     /// The command to execute
-    #[arg(index = 1, value_enum)]
+    #[arg(index = 1, value_enum, requires("search_arg"))]
     action: Option<SousaCommands>,
 
     /// The string to search for when paired with a "Search" action
-    #[arg(index = 2, required_if_eq("action", "search"))]
+    #[arg(index = 2, requires("field"))]
     search_arg: Option<String>,
 
     /// The field to search for when running `search`
     #[arg(
-        short,
         long,
-        required_if_eq("action", "search"),
         value_parser(["title", "artist", "album"])
     )]
-    search_field: Option<String>,
+    field: Option<String>,
     // Add flag for "search filepaths too"
 }
 
@@ -58,22 +57,18 @@ fn main() {
         SousaCommands::Play => serde_json::to_string(&UIRequest::Play).unwrap(),
         SousaCommands::Pause => serde_json::to_string(&UIRequest::Pause).unwrap(),
         SousaCommands::Search => {
-            let request: UIRequest = match cli.search_field.unwrap().to_lowercase().as_str() {
-                "title" => UIRequest::Search(PartialTag {
-                    title: cli.search_arg,
-                    ..PartialTag::default()
-                }),
-                "artist" => UIRequest::Search(PartialTag {
-                    artist: cli.search_arg,
-                    ..PartialTag::default()
-                }),
-                "album" => UIRequest::Search(PartialTag {
-                    album: cli.search_arg,
-                    ..PartialTag::default()
-                }),
-                _ => panic!(
-                    "Unknown search type! Expected values are 'title', 'artist', and 'album'"
+            let request = match parse_to_partialtag(cli.field.unwrap(), cli.search_arg.unwrap()) {
+                Ok(tag) => UIRequest::Search(tag),
+                Err(_) => panic!(
+                    "Unknown Search type! Expected values are 'title', 'artist', and 'album'"
                 ),
+            };
+            serde_json::to_string(&request).unwrap()
+        }
+        SousaCommands::SwitchTo => {
+            let request = match parse_to_partialtag(cli.field.unwrap(), cli.search_arg.unwrap()) {
+                Ok(tag) => UIRequest::SwitchTo(tag),
+                Err(_) => panic!("Unknown type!"),
             };
             serde_json::to_string(&request).unwrap()
         }
@@ -86,6 +81,24 @@ fn main() {
     resp.pretty_print();
     //println!("recieved: {:?}\n{:?}", resp.message, resp.search_results);
     socket.close(None).unwrap();
+}
+
+fn parse_to_partialtag(field: String, value: String) -> Result<PartialTag, ()> {
+    match field.to_lowercase().as_str() {
+        "title" => Ok(PartialTag {
+            title: Some(value),
+            ..PartialTag::default()
+        }),
+        "artist" => Ok(PartialTag {
+            artist: Some(value),
+            ..PartialTag::default()
+        }),
+        "album" => Ok(PartialTag {
+            album: Some(value),
+            ..PartialTag::default()
+        }),
+        _ => Err(()),
+    }
 }
 
 impl ServerResponse {
