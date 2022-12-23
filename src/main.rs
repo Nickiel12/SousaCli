@@ -28,7 +28,7 @@ struct CliArgs {
     port: Option<String>,
 
     /// The command to execute
-    #[arg(index = 1, value_enum, requires("search_arg"))]
+    #[arg(index = 1, value_enum)]
     action: Option<SousaCommands>,
 
     /// The string to search for when paired with a "Search" action
@@ -38,6 +38,7 @@ struct CliArgs {
     /// The field to search for when running `search`
     #[arg(
         long,
+        required_if_eq_any([("action", "search"), ("action", "SwitchTo")]),
         value_parser(["title", "artist", "album"])
     )]
     field: Option<String>,
@@ -78,7 +79,11 @@ fn main() {
     let msg = socket.read_message().expect("Error reading message");
     let resp: message_types::ServerResponse =
         serde_json::from_str(msg.into_text().unwrap().as_str()).unwrap();
-    resp.pretty_print();
+    println!("\n{}\n", resp.message);
+
+    if resp.search_results.len() > 0 {
+        resp.pretty_print();
+    }
     //println!("recieved: {:?}\n{:?}", resp.message, resp.search_results);
     socket.close(None).unwrap();
 }
