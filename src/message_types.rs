@@ -94,3 +94,41 @@ pub enum UIRequest {
     SwitchTo(PartialTag),
     GetStatus,
 }
+
+pub fn itemtag_to_partial(itemtag: &ItemTag) -> PartialTag {
+    let mut partial_tag = PartialTag {
+        ..PartialTag::default()
+    };
+
+    if itemtag.path.is_empty() {
+        partial_tag.path = None;
+    } else {
+        partial_tag.path = Some(itemtag.path.clone());
+    }
+
+    if itemtag.title.is_empty() {
+        partial_tag.title = None;
+    } else {
+        partial_tag.title = Some(itemtag.title.clone());
+    }
+
+    if itemtag.album.is_empty() {
+        partial_tag.album = None;
+    } else {
+        partial_tag.album = Some(itemtag.album.clone());
+    }
+
+    if itemtag.artist.is_empty() {
+        partial_tag.artist = None;
+    } else {
+        partial_tag.artist = Some(itemtag.artist.clone());
+    }
+
+    if itemtag.album_artist.is_empty() {
+        partial_tag.album_artist = None;
+    } else {
+        partial_tag.album_artist = Some(itemtag.album_artist.clone());
+    }
+
+    return partial_tag;
+}
