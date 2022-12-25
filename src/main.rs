@@ -87,7 +87,9 @@ fn main() {
         }
     };
 
-    socket.write_message(Message::Text(message_string)).unwrap();
+    socket
+        .write_message(Message::Text(message_string))
+        .expect("Error sending message");
     let server_message = socket.read_message().expect("Error reading message");
 
     let server_response: message_types::ServerResponse =
