@@ -50,7 +50,6 @@ struct CliArgs {
         value_parser(["title", "artist", "album"]),
     )]
     field: String,
-
     // Add flag for "search filepaths too" for music lacking metadata
 }
 
@@ -67,11 +66,14 @@ fn main() {
         SousaCommands::Play => serde_json::to_string(&UIRequest::Play).unwrap(),
         SousaCommands::Pause => serde_json::to_string(&UIRequest::Pause).unwrap(),
         SousaCommands::Search => {
-            let request = UIRequest::Search(parse_to_partialtag(cli.field, cli.search_arg.unwrap()).unwrap());
+            let request =
+                UIRequest::Search(parse_to_partialtag(cli.field, cli.search_arg.unwrap()).unwrap());
             serde_json::to_string(&request).unwrap()
         }
         SousaCommands::SwitchTo => {
-            let request = UIRequest::SwitchTo(parse_to_partialtag(cli.field, cli.search_arg.unwrap()).unwrap());
+            let request = UIRequest::SwitchTo(
+                parse_to_partialtag(cli.field, cli.search_arg.unwrap()).unwrap(),
+            );
             serde_json::to_string(&request).unwrap()
         }
         SousaCommands::StatusUpdate => {
@@ -85,18 +87,14 @@ fn main() {
         .expect("Error sending message");
     let server_message = socket.read_message().expect("Error reading message");
 
-    let server_response: message_types::ServerResponse = match serde_json::from_str(server_message.clone().into_text().unwrap().as_str()) {
-        Ok(sr) => sr,
-        Err(error) => {
-            println!("\n\nThere was an error decoding the message from the server");
-            println!("\nThe Message was: {}", server_message);
-            println!("\n\n {}", error);
-            socket.close(None).unwrap();
-            return ();
-        }
-    };
+    if server_message.is_empty() {
+        socket.close(None).unwrap();
+        panic!("The server returned nothing");
+    }
 
-    println!("{}", server_response.message.clone());
+    let server_response: message_types::ServerResponse =
+        serde_json::from_str(server_message.clone().into_text().unwrap().as_str()).unwrap();
+
     if server_response
         .message
         .starts_with("Multiple results found")
@@ -134,7 +132,7 @@ fn main() {
 }
 
 /// Print the table of partial matches to the switch-to
-/// 
+///
 /// Takes the Server Response object, and creates a table out of the
 /// results for the user to select an index of.
 fn print_switchto_table(msg: ServerResponse) {
@@ -170,10 +168,10 @@ fn print_switchto_table(msg: ServerResponse) {
 }
 
 /// Creates a PartialTag from the `--field` and `SEARCH_ARG`
-/// 
-/// Takes the field as a string, and the SEARCH_ARG as a string, and 
+///
+/// Takes the field as a string, and the SEARCH_ARG as a string, and
 /// returns a partialtag with the value in the field specified by field.
-/// 
+///
 /// ```
 /// let partial_tag = parse_to_partialtag("title".to_string(), "Rocker Song".to_string()).unwrap();
 /// assert_eq!(partial_tag.title, Some("Rocker Song".to_string()))
@@ -197,8 +195,7 @@ fn parse_to_partialtag(field: String, value: String) -> Result<PartialTag, Strin
 }
 
 impl ServerResponse {
-    
-    /// Prints 
+    /// Prints
     fn pretty_print(self: &Self) -> () {
         let mut table = Table::new(vec![
             "Title".to_string(),
@@ -216,7 +213,6 @@ impl ServerResponse {
         );
     }
 }
-
 
 #[test]
 fn test_partialtag() {
