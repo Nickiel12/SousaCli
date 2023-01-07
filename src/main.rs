@@ -35,7 +35,6 @@ struct CliArgs {
     /// The value used to search/switch tracks
     #[arg(
         index = 2,
-        requires("field"),
         required_if_eq_any([("action", "search"), ("action", "SwitchTo")])
     )]
     search_arg: Option<String>,
@@ -46,10 +45,10 @@ struct CliArgs {
     /// The field to search for when running `search`
     #[arg(
         long,
-        required_if_eq_any([("action", "search"), ("action", "SwitchTo")]),
-        value_parser(["title", "artist", "album"])
+        default_value = "title",
+        value_parser(["title", "artist", "album"]),
     )]
-    field: Option<String>,
+    field: String,
     // Add flag for "search filepaths too"
 }
 
@@ -66,7 +65,7 @@ fn main() {
         SousaCommands::Play => serde_json::to_string(&UIRequest::Play).unwrap(),
         SousaCommands::Pause => serde_json::to_string(&UIRequest::Pause).unwrap(),
         SousaCommands::Search => {
-            let request = match parse_to_partialtag(cli.field.unwrap(), cli.search_arg.unwrap()) {
+            let request = match parse_to_partialtag(cli.field, cli.search_arg.unwrap()) {
                 Ok(tag) => UIRequest::Search(tag),
                 Err(_) => panic!(
                     "Unknown Search type! Expected values are 'title', 'artist', and 'album'"
@@ -75,7 +74,7 @@ fn main() {
             serde_json::to_string(&request).unwrap()
         }
         SousaCommands::SwitchTo => {
-            let request = match parse_to_partialtag(cli.field.unwrap(), cli.search_arg.unwrap()) {
+            let request = match parse_to_partialtag(cli.field, cli.search_arg.unwrap()) {
                 Ok(tag) => UIRequest::SwitchTo(tag),
                 Err(_) => panic!("Unknown type!"),
             };
