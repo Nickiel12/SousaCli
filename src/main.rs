@@ -20,29 +20,30 @@ enum SousaCommands {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about=None)]
 struct CliArgs {
-    /// The IP of the Sousa server. Defaults to 'localhost'
+    /// The IP of the Sousa server.
     #[arg(long, default_value = "localhost")]
     hostname: Option<String>,
 
-    /// The Port of the Sousa server. Defaults to something
+    /// The Port of the Sousa server.
     #[arg(long, default_value = "9001")]
     port: Option<String>,
 
-    /// The command to execute
+    /// The command to send to the server
     #[arg(index = 1, value_enum)]
     action: Option<SousaCommands>,
 
-    /// The value used to search/switch tracks
+    /// The value of the field used to search/switch tracks
     #[arg(
         index = 2,
         required_if_eq_any([("action", "search"), ("action", "SwitchTo")])
     )]
     search_arg: Option<String>,
 
+    /// Used with switch-to to select the correct of the returned values
     #[arg(long, required_if_eq("action", "SwitchTo"))]
     choice_index: Option<usize>,
 
-    /// The field to search for when running `search`
+    /// The field to search for when running `search`.
     #[arg(
         long,
         default_value = "title",
@@ -66,19 +67,11 @@ fn main() {
         SousaCommands::Play => serde_json::to_string(&UIRequest::Play).unwrap(),
         SousaCommands::Pause => serde_json::to_string(&UIRequest::Pause).unwrap(),
         SousaCommands::Search => {
-            let request = match parse_to_partialtag(cli.field, cli.search_arg.unwrap()) {
-                Ok(tag) => UIRequest::Search(tag),
-                Err(_) => panic!(
-                    "Unknown Search type! Expected values are 'title', 'artist', and 'album'"
-                ),
-            };
+            let request = UIRequest::Search(parse_to_partialtag(cli.field, cli.search_arg.unwrap()).unwrap());
             serde_json::to_string(&request).unwrap()
         }
         SousaCommands::SwitchTo => {
-            let request = match parse_to_partialtag(cli.field, cli.search_arg.unwrap()) {
-                Ok(tag) => UIRequest::SwitchTo(tag),
-                Err(_) => panic!("Unknown type!"),
-            };
+            let request = UIRequest::SwitchTo(parse_to_partialtag(cli.field, cli.search_arg.unwrap()).unwrap());
             serde_json::to_string(&request).unwrap()
         }
         SousaCommands::StatusUpdate => {
@@ -92,8 +85,16 @@ fn main() {
         .expect("Error sending message");
     let server_message = socket.read_message().expect("Error reading message");
 
-    let server_response: message_types::ServerResponse =
-        serde_json::from_str(server_message.into_text().unwrap().as_str()).unwrap();
+    let server_response: message_types::ServerResponse = match serde_json::from_str(server_message.clone().into_text().unwrap().as_str()) {
+        Ok(sr) => sr,
+        Err(error) => {
+            println!("\n\nThere was an error decoding the message from the server");
+            println!("\nThe Message was: {}", server_message);
+            println!("\n\n {}", error);
+            socket.close(None).unwrap();
+            return ();
+        }
+    };
 
     println!("{}", server_response.message.clone());
     if server_response
@@ -118,7 +119,7 @@ fn main() {
                     .unwrap();
             }
         } else {
-            choose_switch_to(server_response);
+            print_switchto_table(server_response);
         }
     } else {
         println!("\n{}\n", server_response.message);
@@ -132,7 +133,11 @@ fn main() {
     socket.close(None).unwrap();
 }
 
-fn choose_switch_to(msg: ServerResponse) {
+/// Print the table of partial matches to the switch-to
+/// 
+/// Takes the Server Response object, and creates a table out of the
+/// results for the user to select an index of.
+fn print_switchto_table(msg: ServerResponse) {
     println!("\n\n{}\n\n", msg.message);
 
     let mut table = Table::new(vec![
@@ -164,7 +169,16 @@ fn choose_switch_to(msg: ServerResponse) {
     );
 }
 
-fn parse_to_partialtag(field: String, value: String) -> Result<PartialTag, ()> {
+/// Creates a PartialTag from the `--field` and `SEARCH_ARG`
+/// 
+/// Takes the field as a string, and the SEARCH_ARG as a string, and 
+/// returns a partialtag with the value in the field specified by field.
+/// 
+/// ```
+/// let partial_tag = parse_to_partialtag("title".to_string(), "Rocker Song".to_string()).unwrap();
+/// assert_eq!(partial_tag.title, Some("Rocker Song".to_string()))
+/// ```
+fn parse_to_partialtag(field: String, value: String) -> Result<PartialTag, String> {
     match field.to_lowercase().as_str() {
         "title" => Ok(PartialTag {
             title: Some(value),
@@ -178,11 +192,13 @@ fn parse_to_partialtag(field: String, value: String) -> Result<PartialTag, ()> {
             album: Some(value),
             ..PartialTag::default()
         }),
-        _ => Err(()),
+        _ => Err(format!("Unrecognized type: {}", field)),
     }
 }
 
 impl ServerResponse {
+    
+    /// Prints 
     fn pretty_print(self: &Self) -> () {
         let mut table = Table::new(vec![
             "Title".to_string(),
@@ -199,4 +215,11 @@ impl ServerResponse {
                 .unwrap()
         );
     }
+}
+
+
+#[test]
+fn test_partialtag() {
+    let partial_tag = parse_to_partialtag("title".to_string(), "Rocker Song".to_string()).unwrap();
+    assert_eq!(partial_tag.title, Some("Rocker Song".to_string()))
 }
