@@ -49,7 +49,8 @@ struct CliArgs {
         value_parser(["title", "artist", "album"]),
     )]
     field: String,
-    // Add flag for "search filepaths too"
+
+    // Add flag for "search filepaths too" for music lacking metadata
 }
 
 fn main() {
