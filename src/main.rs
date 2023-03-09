@@ -1,7 +1,4 @@
-use clap::{Parser, ValueEnum};
-use message_types::{itemtag_to_partial, PartialTag, ServerResponse, UIRequest};
-use serde_json;
-use table_print::Table;
+ut::Table;
 use termsize;
 use tungstenite::{connect, Message};
 use url::Url;
@@ -57,7 +54,7 @@ struct CliArgs {
 fn main() {
     let cli = CliArgs::parse();
 
-    let (mut socket, _resp) = connect(
+     let (mut socket, _resp) = connect(
         Url::parse(format!("ws://{}:{}", cli.hostname.unwrap(), cli.port.unwrap()).as_str())
             .unwrap(),
     )
