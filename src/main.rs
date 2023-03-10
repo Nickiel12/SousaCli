@@ -1,4 +1,7 @@
-ut::Table;
+use clap::{Parser, ValueEnum};
+use message_types::{itemtag_to_partial, PartialTag, ServerResponse, UIRequest};
+use serde_json;
+use table_print::Table;
 use termsize;
 use tungstenite::{connect, Message};
 use url::Url;
