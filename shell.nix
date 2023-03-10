@@ -12,6 +12,7 @@ in
 pkgs.mkShell {
   buildInputs = with pkgs; [
     ruststable
+    rust-analyzer
     sqlite
     sqliteman
     pkg-config
